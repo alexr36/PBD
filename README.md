@@ -5,7 +5,14 @@
 All solutions have been written using SQL.
 
 ## Repository structure
-
+```
+PBD/
+│
+├── Lists/
+├── List0x/
+```
+In `List0x/` directories there are solutions for the tasks.
+In `Lists/` directory there are instructions for the tasks presented during laboratory classes.
 
 ## Disclaimer
 This repository contains solution code written by me.
