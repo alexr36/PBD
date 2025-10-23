@@ -2,7 +2,7 @@
 (Database Programming)
 
 ## Used language
-All solutions have been written using SQL.
+All solutions have been written using SQL, in Oracle and Microsoft dialects.
 
 ## Repository structure
 ```
