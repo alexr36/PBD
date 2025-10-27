@@ -11,7 +11,8 @@ CREATE TABLE Bandy (
 CREATE TABLE Funkcje (
     funkcja   VARCHAR2(10) CONSTRAINT pk_funkcje PRIMARY KEY,
     min_myszy NUMBER(3)    CONSTRAINT ck_funkcje_min_myszy CHECK (min_myszy > 5),
-    max_myszy NUMBER(3)    CONSTRAINT ck_funkcje_max_myszy CHECK (max_myszy < 200 AND max_myszy >= min_myszy)
+    max_myszy NUMBER(3),
+    CONSTRAINT ck_funkcje_max_myszy CHECK (max_myszy < 200 AND max_myszy >= min_myszy)
 );
 
 CREATE TABLE Wrogowie (
