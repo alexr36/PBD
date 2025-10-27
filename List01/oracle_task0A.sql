@@ -47,7 +47,3 @@ ADD CONSTRAINT fk_kocury_szef_bandy FOREIGN KEY (szef_bandy) REFERENCES Kocury(p
 
 -- Save changes
 COMMIT;
-
---------------------------------------------------------------------------------
--- TASK 0B 
---------------------------------------------------------------------------------
