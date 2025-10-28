@@ -64,7 +64,7 @@ SELECT
     przydzial_myszy                                   "Zjada"
 FROM Kocury
 WHERE 
-    EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM w_stadku_od) >= 15 AND 
+    MONTHS_BETWEEN(SYSDATE, w_stadku_od) / 12 >= 15 AND
     EXTRACT(MONTH FROM w_stadku_od) BETWEEN 3 AND 9;
 
 --------------------------------------------------------------------------------
