@@ -13,9 +13,9 @@ WHERE
 -- TASK 2
 --------------------------------------------------------------------------------
 SELECT 
-    imie        "IMIE", 
-    funkcja     "FUNKCJA",
-    w_stadku_od "Z NAMI OD"
+    imie                               "IMIE", 
+    funkcja                            "FUNKCJA",
+    TO_CHAR(w_stadku_od, 'YYYY-MM-DD') "Z NAMI OD"
 FROM Kocury
 WHERE 
     plec = 'D' AND 
@@ -37,7 +37,7 @@ ORDER BY stopien_wrogosci;
 -- TASK 4
 --------------------------------------------------------------------------------
 SELECT imie || ' zwany ' || pseudo || ' (fun. ' || funkcja || ') lowi myszki w bandzie ' || 
-       nr_bandy || ' od ' || TO_CHAR(w_stadku_od, 'YYYY-MM-DD') "WSZYSTK O KOCURACH"
+       nr_bandy || ' od ' || TO_CHAR(w_stadku_od, 'YYYY-MM-DD') "WSZYSTKO O KOCURACH"
 FROM Kocury
 WHERE plec = 'M'
 ORDER BY w_stadku_od DESC, pseudo;
