@@ -45,4 +45,3 @@ CREATE TABLE Wrogowie_kocurow (
 -- Adding constraint to the szef_bandy field in Bandy table
 ALTER TABLE Bandy 
 ADD CONSTRAINT fk_kocury_szef_bandy FOREIGN KEY (szef_bandy) REFERENCES Kocury(pseudo);
-

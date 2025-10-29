@@ -27,7 +27,7 @@ START WITH szef IS NULL;
 -- TASK 16
 --------------------------------------------------------------------------------
 SELECT 
-    RPAD(' ', (LEVEL - 1) * 4, ' ') || pseudo "Droga sluzbowa"
+    RPAD(' ', (LEVEL - 1) * 4) || pseudo "Droga sluzbowa"
 FROM Kocury
 CONNECT BY PRIOR szef = pseudo
 START WITH 
