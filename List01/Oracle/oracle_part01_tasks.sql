@@ -125,9 +125,9 @@ ORDER BY szef;
 -- TASK 10
 --------------------------------------------------------------------------------
 SELECT
-    pseudo        "PSEUDO",
-    COUNT(pseudo) "Liczba wrogow"
+    pseudo            "PSEUDO",
+    COUNT(imie_wroga) "Liczba wrogow"
 FROM Wrogowie_kocurow
 GROUP BY pseudo
-HAVING COUNT(pseudo) > 1
+HAVING COUNT(imie_wroga) > 1
 ORDER BY pseudo;
