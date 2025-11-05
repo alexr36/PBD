@@ -8,8 +8,8 @@ SELECT
     nr_bandy "Nr bandy"
 FROM Kocury
 WHERE plec = 'M'
-CONNECT BY PRIOR pseudo = szef
-START WITH funkcja = 'BANDZIOR';
+START WITH funkcja = 'BANDZIOR'
+CONNECT BY PRIOR pseudo = szef;
 
 --------------------------------------------------------------------------------
 -- TASK 15
@@ -20,8 +20,8 @@ SELECT
     funkcja                      "Funkcja"
 FROM Kocury
 WHERE myszy_extra > 0
-CONNECT BY PRIOR pseudo = szef
-START WITH szef IS NULL;
+START WITH szef IS NULL
+CONNECT BY PRIOR pseudo = szef;
 
 --------------------------------------------------------------------------------
 -- TASK 16
