@@ -29,8 +29,8 @@ CONNECT BY PRIOR pseudo = szef;
 SELECT 
     RPAD(' ', (LEVEL - 1) * 4) || pseudo "Droga sluzbowa"
 FROM Kocury
-CONNECT BY PRIOR szef = pseudo
 START WITH 
     MONTHS_BETWEEN(SYSDATE, w_stadku_od) / 12 > 15 AND
     plec = 'M' AND
-    myszy_extra IS NULL;
+    myszy_extra IS NULL
+CONNECT BY PRIOR szef = pseudo;
