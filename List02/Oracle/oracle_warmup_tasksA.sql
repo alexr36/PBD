@@ -27,14 +27,11 @@ ORDER BY k.pseudo;
 -- TASK 3
 --------------------------------------------------------------------------------
 SELECT
-    k.pseudo "Szpieg",
+    k.pseudo   "Szpieg",
     k.nr_bandy "Banda"
 FROM Kocury k
-    INNER JOIN Bandy b ON k.nr_bandy = b.NR_BANDY
-WHERE
-    k.szef != b.szef_bandy
-    AND
-    k.szef = 'TYGRYS';
+    INNER JOIN Bandy b ON k.szef = b.szef_bandy
+WHERE k.szef = 'TYGRYS';
     
 --------------------------------------------------------------------------------
 -- TASK 4
@@ -43,8 +40,7 @@ SELECT
     NVL(k1.pseudo, 'Brak przelozonego') "Przelozony",
     NVL(k2.pseudo, 'Brak podwladnego')  "Podwladny"
 FROM Kocury k1
-    FULL JOIN Kocury k2 
-    ON k1.pseudo = k2.szef 
+    FULL JOIN Kocury k2 ON k1.pseudo = k2.szef 
 WHERE 
     NVL(k1.plec, 'M') = 'M' 
     AND 
@@ -54,3 +50,4 @@ ORDER BY "Przelozony";
 --------------------------------------------------------------------------------
 -- TASK 5
 --------------------------------------------------------------------------------
+
