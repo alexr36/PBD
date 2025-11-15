@@ -50,4 +50,20 @@ ORDER BY "Przelozony";
 --------------------------------------------------------------------------------
 -- TASK 5
 --------------------------------------------------------------------------------
-
+SELECT
+    k.pseudo                                                                                  "PSEUDO",
+    k.przydzial_myszy                                                                         "PRZYDZIAL_MYSZY",
+    SUM(k.przydzial_myszy) OVER (PARTITION BY k.nr_bandy)                                     "SUM_W_BANDZIE",
+    ROUND(k.przydzial_myszy * 100 / SUM(k.przydzial_myszy) OVER (PARTITION BY k.nr_bandy), 0) "PROC_W_BANDZIE"
+FROM Kocury k
+    JOIN Wrogowie_kocurow wk ON k.pseudo = wk.pseudo
+    JOIN Wrogowie w ON wk.imie_wroga = w.imie_wroga
+    JOIN Bandy b ON k.nr_bandy = b.nr_bandy
+WHERE
+    w.stopien_wrogosci > 5
+    AND
+    b.teren IN ('POLE', 'CALOSC')
+GROUP BY
+    k.pseudo,
+    k.przydzial_myszy,
+    k.nr_bandy;
