@@ -23,7 +23,8 @@ FROM Kocury K
     INNER JOIN Wrogowie_kocurow wk ON k.pseudo = wk.pseudo
 WHERE 
     k.plec = 'D'
-ORDER BY k.pseudo;
+ORDER BY 
+    k.pseudo;
 
 --------------------------------------------------------------------------------
 -- TASK 3
@@ -48,7 +49,8 @@ WHERE
     ISNULL(k1.plec, 'M') = 'M' 
     AND 
     ISNULL(k2.plec, 'M') = 'M'
-ORDER BY 'Przelozony';
+ORDER BY 
+    'Przelozony';
 
 --------------------------------------------------------------------------------
 -- TASK 5
@@ -61,7 +63,6 @@ SELECT DISTINCT
 FROM (
     SELECT
         k.pseudo,
-        k.nr_bandy,
         k.przydzial_myszy,
         SUM(k.przydzial_myszy) OVER (PARTITION BY k.nr_bandy) [SUM_W_BANDZIE]
     FROM Kocury k

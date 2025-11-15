@@ -1,7 +1,8 @@
 --------------------------------------------------------------------------------
 -- TASK 1
 --------------------------------------------------------------------------------
-SELECT k1.imie "W stadzie przed szefem lub bez incydentu"
+SELECT 
+    k1.imie "W stadzie przed szefem lub bez incydentu"
 FROM Kocury k1 
     LEFT JOIN Wrogowie_kocurow wk ON k1.pseudo = wk.pseudo
     INNER JOIN Kocury k2 ON k1.szef = k2.pseudo
@@ -20,8 +21,10 @@ SELECT
     wk.opis_incydentu "Przewina wroga"
 FROM Kocury k 
     INNER JOIN Wrogowie_kocurow wk ON k.pseudo = wk.pseudo
-WHERE k.plec = 'D'
-ORDER BY k.pseudo;
+WHERE 
+    k.plec = 'D'
+ORDER BY 
+    k.pseudo;
 
 --------------------------------------------------------------------------------
 -- TASK 3
@@ -31,7 +34,8 @@ SELECT
     k.nr_bandy "Banda"
 FROM Kocury k
     INNER JOIN Bandy b ON k.szef = b.szef_bandy
-WHERE k.szef = 'TYGRYS';
+WHERE 
+    k.szef = 'TYGRYS';
     
 --------------------------------------------------------------------------------
 -- TASK 4
@@ -45,7 +49,8 @@ WHERE
     NVL(k1.plec, 'M') = 'M' 
     AND 
     NVL(k2.plec, 'M') = 'M'
-ORDER BY "Przelozony";
+ORDER BY 
+    "Przelozony";
 
 --------------------------------------------------------------------------------
 -- TASK 5
