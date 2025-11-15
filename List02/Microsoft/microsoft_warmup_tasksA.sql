@@ -54,20 +54,24 @@ ORDER BY 'Przelozony';
 -- TASK 5
 --------------------------------------------------------------------------------
 SELECT DISTINCT
-    k.pseudo                                                                                  [PSEUDO],
-    k.przydzial_myszy                                                                         [PRZYDZIAL_MYSZY],
-    SUM(k.przydzial_myszy) OVER (PARTITION BY k.nr_bandy)                                     [SUM_W_BANDZIE],
-    ROUND(k.przydzial_myszy * 100 / SUM(k.przydzial_myszy) OVER (PARTITION BY k.nr_bandy), 0) [PROC_W_BANDZIE]
-FROM Kocury k
-    INNER JOIN Wrogowie_kocurow wk ON k.pseudo = wk.pseudo
-    INNER JOIN Wrogowie w ON wk.imie_wroga = w.imie_wroga
-    INNER JOIN Bandy b ON k.nr_bandy = b.nr_bandy
+    k1.pseudo                                   [PSEUDO],
+    k1.przydzial_myszy                          [PRZYDZIAL_MYSZY],
+    k1.SUM_W_BANDZIE                            [SUM_W_BANDZIE],
+    k1.przydzial_myszy * 100 / k1.SUM_W_BANDZIE [PROC_W_BANDZIE]
+FROM (
+    SELECT
+        k.pseudo,
+        k.nr_bandy,
+        k.przydzial_myszy,
+        SUM(k.przydzial_myszy) OVER (PARTITION BY k.nr_bandy) [SUM_W_BANDZIE]
+    FROM Kocury k
+        INNER JOIN Bandy b ON k.nr_bandy = b.nr_bandy
+    WHERE
+        b.teren IN ('POLE', 'CALOSC')
+) k1
+    INNER JOIN Wrogowie_kocurow wk ON wk.pseudo = k1.pseudo
+    INNER JOIN Wrogowie w ON w.imie_wroga = wk.imie_wroga
 WHERE
     w.stopien_wrogosci > 5
-    AND
-    b.teren IN ('POLE', 'CALOSC')
-GROUP BY
-    k.pseudo,
-    k.przydzial_myszy,
-    k.nr_bandy;
-
+ORDER BY
+    k1.SUM_W_BANDZIE;
