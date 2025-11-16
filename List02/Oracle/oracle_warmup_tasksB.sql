@@ -115,7 +115,7 @@ ORDER BY f.funkcja;
 --------------------------------------------------------------------------------
 SELECT
     f.funkcja "FUNKCJA",
-    k.plec,
+    k.plec    "P",
     SUM (
         CASE
             WHEN b.nazwa = 'CZARNI RYCERZE'
@@ -135,5 +135,8 @@ FROM Funkcje f
     LEFT JOIN Bandy b ON k.nr_bandy = b.nr_bandy
 WHERE 
     f.funkcja != 'SZEFUNIO'
-GROUP BY f.funkcja, k.plec
-ORDER BY f.funkcja;
+GROUP BY 
+    f.funkcja, 
+    k.plec
+ORDER BY 
+    f.funkcja;
