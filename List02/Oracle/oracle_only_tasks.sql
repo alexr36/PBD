@@ -1,16 +1,61 @@
 --------------------------------------------------------------------------------
 -- TASK 12
 --------------------------------------------------------------------------------
-
+SELECT
+    k.pseudo          "POLUJE W POLU",
+    k.przydzial_myszy "PRZYDZIAL MYSZY",
+    b.nazwa           "BANDA"
+FROM Kocury k
+    INNER JOIN Bandy b ON k.nr_bandy = b.nr_bandy
+WHERE
+    b.teren IN ('POLE', 'CALOSC')
+    AND
+    k.przydzial_myszy > 50
+ORDER BY
+    k.przydzial_myszy DESC;
 
 --------------------------------------------------------------------------------
 -- TASK 13
 --------------------------------------------------------------------------------
-
+SELECT
+    k1.imie                               "IMIE",
+    TO_CHAR(k1.w_stadku_od, 'YYYY-MM-DD') "POLUJE OD"
+FROM Kocury k1
+    INNER JOIN Kocury k2 ON k2.imie = 'JACEK'
+WHERE
+    k1.w_stadku_od < k2.w_stadku_od
+ORDER BY
+    k1.w_stadku_od DESC;
 
 --------------------------------------------------------------------------------
 -- TASK 14
 --------------------------------------------------------------------------------
+-- a)
+SELECT
+    k1.imie           "IMIE",
+    k1.funkcja        "FUNKCJA",
+    NVL(k2.imie, ' ') "Szef 1",
+    NVL(k3.imie, ' ') "Szef 2",
+    NVL(k4.imie, ' ') "Szef 3"
+FROM Kocury k1
+    LEFT JOIN Kocury k2 ON k1.szef = k2.pseudo
+    LEFT JOIN Kocury k3 ON k2.szef = k3.pseudo
+    LEFT JOIN Kocury k4 ON k3.szef = k4.pseudo
+WHERE 
+    k1.funkcja IN ('KOT', 'MILUSIA');
+    
+-- b)
+SELECT
+    NVL(CONNECT_BY_ROOT imie) "IMIE",
+    funkcja "FUNKCJA"
+FROM Kocury
+PIVOT (
+    COUNT(szef)
+    FOR szef
+    IN ("Szef 1")
+);
+
+-- c)
 
 
 --------------------------------------------------------------------------------
