@@ -40,8 +40,8 @@ ORDER BY
 --------------------------------------------------------------------------------
 -- a)
 SELECT
-    k1.imie           "IMIE",
-    k1.funkcja        "FUNKCJA",
+    k1.imie           "Imie",
+    k1.funkcja        "Funkcja",
     NVL(k2.imie, ' ') "Szef 1",
     NVL(k3.imie, ' ') "Szef 2",
     NVL(k4.imie, ' ') "Szef 3"
@@ -53,10 +53,42 @@ WHERE
     k1.funkcja IN ('KOT', 'MILUSIA');
     
 -- b)
+WITH Drzewo AS (
+    SELECT
+        imie    "Imie",
+        funkcja "Funkcja",
+        CONNECT_BY_ROOT imie AS szef_podst,
+        LEVEL - 1 AS lvl
+    FROM Kocury
+    WHERE 
+        funkcja IN ('KOT', 'MILUSIA')
+    CONNECT BY PRIOR pseudo = szef
+)
+SELECT *
+FROM Drzewo
+PIVOT (
+    MAX(szef_podst)
+    FOR lvl IN (1 AS "Szef 1", 2 AS "Szef 2", 3 AS "Szef 3")
+);
 
---TODO: dokoncz
 -- c)
-
+SELECT 
+    imie    "Imie", 
+    funkcja "Funkcja", 
+    LTRIM(
+        REVERSE(
+            RTRIM(
+                SYS_CONNECT_BY_PATH(REVERSE(RPAD(imie, 12, ' ')), ' | '), 
+                imie
+            )
+        ), 
+        '| '
+    )     "Imiona kolejnych szefow"
+FROM Kocury
+WHERE 
+    funkcja IN ('KOT', 'MILUSIA')
+START WITH szef IS NULL
+CONNECT BY PRIOR pseudo = szef;
 
 --------------------------------------------------------------------------------
 -- TASK 15
@@ -428,8 +460,49 @@ ORDER BY
 --------------------------------------------------------------------------------
 -- TASK 25
 --------------------------------------------------------------------------------
+WITH Daty AS (
+    SELECT
+    imie,
+    TO_CHAR(data_wst, 'YYYY-MM-DD') AS data_wst_format,
+    nazwa_bandy,
+    staz_max,
+    staz_min
+    FROM (
+        SELECT
+            k.imie AS imie,
+            k.w_stadku_od AS data_wst,
+            b.nazwa AS nazwa_bandy,
+            MIN(k.w_stadku_od) OVER (PARTITION BY b.nr_bandy) staz_max,
+            MAX(k.w_stadku_od) OVER (PARTITION BY b.nr_bandy) staz_min
+        FROM Kocury k
+            INNER JOIN Bandy b ON b.nr_bandy = k.nr_bandy
+    )
+)
+-- Kocury ze stazami posrednimi
 SELECT
-    imie                               "IMIE",
-    TO_CHAR(w_stadku_od, 'YYYY-MM-DD') "WSTAPIL DO STADKA"
-FROM Kocury;
---TODO: finish it
+    d.imie            "IMIE",
+    d.data_wst_format "WSTAPIL DO STADKA"
+FROM Daty d
+WHERE
+    d.data_wst_format NOT IN (d.staz_max, d.staz_min)
+    
+UNION
+-- Kocury z najmniejszymi stazami
+SELECT
+    d.imie "IMIE",
+    d.data_wst_format || ' <--- NAJMLODSZY STAZEM W BANDZIE ' || d.nazwa_bandy
+FROM Daty d
+WHERE
+    d.data_wst_format = staz_min
+
+UNION
+-- Kocury z najwiekszymi stazami
+SELECT
+    d.imie "IMIE",
+    d.data_wst_format || ' <--- NAJSTARSZY STAZEM W BANDZIE ' || d.nazwa_bandy
+FROM Daty d
+WHERE
+    d.data_wst_format = staz_max
+
+ORDER BY
+    "IMIE";
