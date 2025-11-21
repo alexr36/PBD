@@ -43,7 +43,9 @@ SELECT
 FROM Kocury k
     INNER JOIN Bandy b ON k.pseudo = b.szef_bandy
 WHERE 
-    k.szef = 'TYGRYS';
+    k.szef = 'TYGRYS'
+    AND
+    b.szef_bandy != 'TYGRYS';
     
 --------------------------------------------------------------------------------
 -- TASK 4
