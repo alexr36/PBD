@@ -112,7 +112,7 @@ FROM Hierarchia;
 --------------------------------------------------------------------------------
 SELECT
     k1.pseudo [Do przeczolgania],
-    b.nazwa  [Nazwa bandy]
+    b.nazwa   [Nazwa bandy]
 FROM Kocury k1
     INNER JOIN Bandy b ON b.nr_bandy = k1.nr_bandy
     INNER JOIN Funkcje f ON f.funkcja = k1.funkcja
