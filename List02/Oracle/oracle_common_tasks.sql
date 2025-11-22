@@ -136,7 +136,204 @@ ROLLBACK;
 -- TASK 32
 --------------------------------------------------------------------------------
 --a)
+-- Statystyki wg band i plci
+CREATE OR REPLACE VIEW Statystyki_band_plec_A (
+    "NAZWA BANDY", 
+    "PLEC", 
+    "ILE", 
+    "SZEFUNIO", 
+    "BANDZIOR", 
+    "LOWCZY", 
+    "LAPACZ", 
+    "KOT", 
+    "MILUSIA", 
+    "DZIELCZY", 
+    "SUMA"
+) AS
+SELECT
+    DECODE(k.plec, 'D', b.nazwa, 'M', ' '),
+    DECODE(k.plec, 'D', 'Kotka', 'M', 'Kocor'),
+    TO_CHAR(COUNT(k.pseudo)),
+    TO_CHAR(SUM(DECODE(
+        k.funkcja,
+        'SZEFUNIO', k.przydzial_myszy + NVL(k.myszy_extra, 0),
+        0
+    ))),
+    TO_CHAR(SUM(DECODE(
+        k.funkcja,
+        'BANDZIOR', k.przydzial_myszy + NVL(k.myszy_extra, 0),
+        0
+    ))),
+    TO_CHAR(SUM(DECODE(
+        k.funkcja,
+        'LOWCZY', k.przydzial_myszy + NVL(k.myszy_extra, 0),
+        0
+    ))),
+    TO_CHAR(SUM(DECODE(
+        k.funkcja,
+        'LAPACZ', k.przydzial_myszy + NVL(k.myszy_extra, 0),
+        0
+    ))),
+    TO_CHAR(SUM(DECODE(
+        k.funkcja,
+        'KOT', k.przydzial_myszy + NVL(k.myszy_extra, 0),
+        0
+    ))),
+    TO_CHAR(SUM(DECODE(
+        k.funkcja,
+        'MILUSIA', k.przydzial_myszy + NVL(k.myszy_extra, 0),
+        0
+    ))),
+    TO_CHAR(SUM(DECODE(
+        k.funkcja,
+        'DZIELCZY', k.przydzial_myszy + NVL(k.myszy_extra, 0),
+        0
+    ))),
+    TO_CHAR(SUM(k.przydzial_myszy + NVL(k.myszy_extra, 0)))
+FROM Kocury k 
+    INNER JOIN Bandy b ON b.nr_bandy = k.nr_bandy
+GROUP BY
+    b.nazwa, 
+    k.plec
+ORDER BY
+    b.nazwa;
 
+SELECT * 
+FROM Statystyki_band_plec_A
+
+UNION ALL
+
+-- Separator
+SELECT 
+    'Z----------------', '------', '----', '---------', '---------', '---------', '---------', '---------', '---------', '---------', '-------'
+FROM dual
+
+UNION ALL
+
+-- Podsumowanie
+SELECT
+    'ZJADA RAZEM',
+    ' ',
+    ' ',
+    TO_CHAR(SUM("SZEFUNIO")),
+    TO_CHAR(SUM("BANDZIOR")),
+    TO_CHAR(SUM("LOWCZY")),
+    TO_CHAR(SUM("LAPACZ")),
+    TO_CHAR(SUM("KOT")),
+    TO_CHAR(SUM("MILUSIA")),
+    TO_CHAR(SUM("DZIELCZY")),
+    TO_CHAR(SUM("SUMA"))
+FROM Statystyki_band_plec_A;
 
 --b)
+-- Widok dla pivota
+CREATE OR REPLACE VIEW Statystyki_band_plec_B (
+    nazwa_bandy,
+    plec_kota,
+    funkcja_kota,
+    spozycie
+) AS
+SELECT
+    b.nazwa,
+    k.plec,
+    k.funkcja,
+    k.przydzial_myszy + NVL(k.myszy_extra, 0)
+FROM Kocury k
+    INNER JOIN Bandy b ON b.nr_bandy = k.nr_bandy;
 
+-- Widok do dołączenia - suma spozycia i liczba kotow danej plci w bandach
+CREATE OR REPLACE VIEW Bandy_sumy_spozycia_per_liczba_kotow (
+    nazwa,
+    plec,
+    liczba_kotow,
+    suma_spozycia
+) AS
+SELECT
+    nazwa,
+    plec,
+    COUNT(pseudo),
+    SUM(przydzial_myszy + NVL(myszy_extra, 0))
+FROM Kocury k1 
+    INNER JOIN Bandy b1 ON b1.nr_bandy = k1.nr_bandy
+GROUP BY nazwa, plec;
+
+-- Statystyki
+SELECT *
+FROM (
+    SELECT
+        DECODE(plec_kota, 'D', nazwa_bandy, 'M', ' ') "NAZWA BANDY",
+        DECODE(plec_kota, 'D', 'Kotka', 'M', 'Kocor') "PLEC",
+        TO_CHAR(liczba_kotow)                         "ILE",
+        TO_CHAR(NVL(szefunio, 0))                     "SZEFUNIO",
+        TO_CHAR(NVL(bandzior, 0))                     "BANDZIOR",
+        TO_CHAR(NVL(lowczy, 0))                       "LOWCZY",
+        TO_CHAR(NVL(lapacz, 0))                       "LAPACZ",
+        TO_CHAR(NVL(kot, 0))                          "KOT",
+        TO_CHAR(NVL(milusia, 0))                      "MILUSIA",
+        TO_CHAR(NVL(dzielczy, 0))                     "DZIELCZY",
+        TO_CHAR(suma_spozycia)                        "SUMA"
+    FROM Statystyki_band_plec_B
+    PIVOT (
+        SUM(spozycie) 
+        FOR funkcja_kota IN (
+            'SZEFUNIO' szefunio, 
+            'BANDZIOR' bandzior, 
+            'LOWCZY'   lowczy, 
+            'LAPACZ'   lapacz, 
+            'KOT'      kot, 
+            'MILUSIA'  milusia, 
+            'DZIELCZY' dzielczy
+        )
+    )
+        INNER JOIN Bandy_sumy_spozycia_per_liczba_kotow 
+            ON nazwa = nazwa_bandy AND plec = plec_kota
+    ORDER BY
+        nazwa_bandy
+)
+
+UNION ALL
+
+-- Separator
+SELECT
+    'Z----------------', '------', '----', '---------', '---------', '---------', '---------', '---------', '---------', '---------', '-------'
+FROM dual
+
+UNION ALL
+
+-- Podsumowanie
+SELECT
+    'ZJADA RAZEM',
+    ' ',
+    ' ',
+    TO_CHAR(szefunio),
+    TO_CHAR(bandzior),
+    TO_CHAR(lowczy),
+    TO_CHAR(lapacz),
+    TO_CHAR(kot),
+    TO_CHAR(milusia),
+    TO_CHAR(dzielczy),
+    TO_CHAR(suma)
+FROM (
+    SELECT
+        k.funkcja                                 AS funkcja_kota,
+        k.przydzial_myszy + NVL(k.myszy_extra, 0) AS spozycie
+    FROM Kocury k
+        INNER JOIN Bandy b ON b.nr_bandy = k.nr_bandy
+)
+PIVOT (
+    SUM(spozycie)
+    FOR funkcja_kota IN (
+        'SZEFUNIO' szefunio, 
+        'BANDZIOR' bandzior, 
+        'LOWCZY'   lowczy, 
+        'LAPACZ'   lapacz, 
+        'KOT'      kot, 
+        'MILUSIA'  milusia, 
+        'DZIELCZY' dzielczy
+    )
+)
+ CROSS JOIN (
+    SELECT
+        SUM(przydzial_myszy + NVL(myszy_extra, 0)) AS suma
+    FROM Kocury
+ );
