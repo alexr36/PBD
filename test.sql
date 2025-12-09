@@ -975,3 +975,103 @@ SELECT
     DENSE_RANK() OVER (ORDER BY punkty_razem DESC) AS ranking
 FROM PunktyBitewne;
 
+/*
+1. PIVOT – liczba incydentów wg wyniku (KOT/WROG/REMIS) dla każdego kota
+*/
+SELECT
+    pseudo,
+    KOT,
+    WROG,
+    REMIS
+FROM (
+    SELECT
+        pseudo,
+        wynik
+    FROM Historia_Incydentow
+) src
+PIVOT (
+    COUNT(*)
+    FOR wynik IN ('KOT' AS KOT, 'WROG' AS WROG, 'REMIS' AS REMIS)
+) pvt
+ORDER BY 
+    pseudo;
+
+/*
+3. PIVOT – suma strat myszy wg terenu (POLE, SAD, GORKA, ZAGRODA)
+*/
+SELECT
+    POLE,
+    SAD,
+    GORKA,
+    ZAGRODA
+FROM (
+    SELECT
+        miejsce,
+        straty_myszy
+    FROM Historia_Incydentow
+)
+PIVOT (
+    SUM(straty_myszy)
+    FOR miejsce IN ('POLE' AS POLE, 'SAD' AS SAD, 'GORKA' AS GORKA, 'ZAGRODA' AS ZAGRODA)
+) pvt;
+
+/*
+6. Ranking kotów wg liczby incydentów (z funkcją analityczną)
+*/
+WITH LiczbyIncydentow AS (
+    SELECT
+        pseudo,
+        COUNT(*) OVER (PARTITION BY pseudo) AS liczba
+    FROM Historia_Incydentow
+)
+SELECT DISTINCT
+    pseudo,
+    liczba,
+    DENSE_RANK() OVER (ORDER BY liczba DESC) AS ranking
+FROM LiczbyIncydentow;
+
+/*
+10. Rolling sum — suma strat z ostatnich 3 incydentów kota
+*/
+SELECT
+    pseudo,
+    SUM(straty_myszy) OVER (
+        PARTITION BY pseudo 
+        ORDER BY data_incydentu 
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) AS rolling_sum
+FROM Historia_Incydentow
+ORDER BY
+    pseudo,
+    data_incydentu;
+
+/*
+13. Pokaż wszystkich podwładnych dowolnego kota (parametr), z poziomem LEVEL
+*/
+WITH Hierarchia (pseudo, szef, lvl) AS (
+    -- część bazowa
+    SELECT
+        pseudo,
+        szef,
+        1 AS lvl
+    FROM Kocury
+    WHERE
+        pseudo = &input_pseudo
+
+    UNION ALL
+
+    -- część rekursywna: idziemy do góry po przełożonych
+    SELECT
+        k.pseudo,
+        k.szef,
+        h.lvl + 1 AS lvl
+    FROM Kocury k
+    JOIN Hierarchia h ON k.pseudo = h.szef
+)
+SELECT *
+FROM Hierarchia;
+
+/*
+18. Znajdź koty będące jedynakami — jedyni podwładni swojego szefa
+*/
+
