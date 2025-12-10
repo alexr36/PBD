@@ -1302,7 +1302,7 @@ Rodzina AS (
         h1.pseudo AS root_pseudo,
         SUM(h2.budzet) AS budzet_rodzinny
     FROM Hierarchia h1
-        JOIN Hierarchia h2 ON h2.sciezka LIKE h1.sciezka || '%'
+        INNER JOIN Hierarchia h2 ON h2.sciezka LIKE h1.sciezka || '%'
     GROUP BY
         h1.pseudo
 )
