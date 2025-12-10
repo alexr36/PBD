@@ -1071,7 +1071,247 @@ WITH Hierarchia (pseudo, szef, lvl) AS (
 SELECT *
 FROM Hierarchia;
 
-/*
-18. Znajdź koty będące jedynakami — jedyni podwładni swojego szefa
-*/
 
+/*
+Dla każdego kota znajdź takich wrogów, których gatunek pojawił się w całej jego 
+bandzie tylko raz (tzn. żaden inny kot z tej samej bandy nie ma wroga tego 
+samego gatunku).
+*/
+SELECT
+    k.pseudo      "Kot",
+    hi.imie_wroga "Wrog",
+    w.gatunek     "Gatunek wroga",
+    b.nazwa       "Banda"
+FROM Kocury k
+    INNER JOIN Historia_Incydentow hi ON hi.pseudo = k.pseudo
+    INNER JOIN Wrogowie w ON w.imie_wroga = hi.imie_wroga
+    INNER JOIN Bandy b ON b.nr_bandy = k.nr_bandy
+WHERE
+    1 = (
+        SELECT
+            COUNT(*)
+        FROM Kocury k1
+            INNER JOIN Historia_Incydentow hi1 ON hi1.pseudo = k1.pseudo
+            INNER JOIN Wrogowie w1 ON w1.imie_wroga = hi1.imie_wroga
+        WHERE
+            k1.nr_bandy = k.nr_bandy
+            AND
+            w1.gatunek = w.gatunek
+    )
+ORDER BY
+    b.nazwa;
+
+
+
+
+SELECT
+    k.pseudo      "Kot",
+    wk.imie_wroga "Wrog",
+    w.gatunek     "Gatunek wroga",
+    b.nazwa       "Banda"
+FROM Wrogowie w
+JOIN Wrogowie_kocurow wk ON wk.imie_wroga = w.imie_wroga
+JOIN Kocury k ON k.pseudo = wk.pseudo
+JOIN Bandy b ON b.nr_bandy = k.nr_bandy
+WHERE (w.gatunek, b.nr_bandy) IN (
+    SELECT gatunek, nr_bandy
+    FROM (
+        SELECT 
+            w2.gatunek,
+            k2.nr_bandy,
+            COUNT(*) AS ile
+        FROM Wrogowie_kocurow wk2
+        JOIN Wrogowie w2 ON w2.imie_wroga = wk2.imie_wroga
+        JOIN Kocury k2 ON k2.pseudo = wk2.pseudo
+        GROUP BY w2.gatunek, k2.nr_bandy
+    )
+    WHERE ile = 1
+)
+ORDER BY b.nazwa;
+
+
+
+--START HERE
+
+/*
+Wypisz imiona kotów oraz wynik walki (KOT / WROG / REMIS), jeżeli kot osiągnął
+taki wynik, a żaden inny kot o tej samej funkcji nie osiągnął tego wyniku
+w żadnym incydencie.
+*/
+SELECT DISTINCT
+    k.imie   "Imie",
+    hi.wynik "Wynik"
+FROM Kocury k
+    INNER JOIN Historia_Incydentow hi ON hi.pseudo = k.pseudo
+WHERE NOT EXISTS (
+    SELECT
+        hi1.pseudo
+    FROM Historia_Incydentow hi1
+        INNER JOIN Kocury k1 ON k1.pseudo = hi1.pseudo
+    WHERE
+        k1.funkcja = k.funkcja
+        AND
+        hi1.wynik = hi.wynik
+        AND
+        hi1.pseudo != k.pseudo
+)
+ORDER BY
+    k.imie,
+    hi.wynik;
+
+/*
+Dla każdego incydentu wyświetl: datę incydentu, pseudo kota,numer bandy kota.
+Dodatkowo wyznacz:
+1. Ile innych incydentów miało miejsce w okresie ±60 dni od daty bieżącego incydentu
+(nie wliczając samego siebie).
+2. Czy poprzedni incydent był bardziej agresywny, czy mniej agresywny.
+Jeżeli nie było poprzedniego incydentu, przyjmij poziom agresji = 0.
+3. Liczbę incydentów od początku roku (dla danego kota).
+4.Numer incydentu w bandzie w danym roku (czyli który to kolejno incydent w bandzie w tym roku).
+*/
+WITH DaneIncydentow AS (
+    SELECT
+        hi.id_incydentu,
+        hi.data_incydentu,
+        hi.pseudo,
+        k.nr_bandy,
+        hi.poziom_agresji,
+
+        LAG(hi.poziom_agresji) OVER (
+            PARTITION BY hi.pseudo
+            ORDER BY hi.data_incydentu
+        ) AS poprzedni_agresja,
+
+        COUNT(*) OVER (
+            PARTITION BY hi.pseudo
+            ORDER BY hi.data_incydentu
+            RANGE BETWEEN INTERVAL '60' DAY PRECEDING AND INTERVAL '60' DAY FOLLOWING
+        ) - 1 AS incydenty_60dni,
+
+        COUNT(*) OVER (
+            PARTITION BY hi.pseudo, EXTRACT(YEAR FROM hi.data_incydentu)
+            ORDER BY hi.data_incydentu
+        ) AS nr_kota_w_roku,
+
+        COUNT(*) OVER (
+            PARTITION BY k.nr_bandy, EXTRACT(YEAR FROM hi.data_incydentu)
+            ORDER BY hi.data_incydentu
+        ) AS nr_bandy_w_roku
+
+    FROM Historia_Incydentow hi
+        JOIN Kocury k ON k.pseudo = hi.pseudo
+)
+SELECT
+    data_incydentu "Data incydentu",
+    pseudo "Pseudo",
+    nr_bandy "Nr_Bandy",
+    incydenty_60dni "Incydenty_w_ok_60dni",
+    CASE
+        WHEN poprzedni_agresja IS NULL THEN 0
+        WHEN poprzedni_agresja > poziom_agresji THEN poziom_agresji
+        ELSE 0
+    END AS "Czy_poprzedni_bardziej_agresywny",
+    nr_kota_w_roku "Incydentow_od_poczatku_roku",
+    nr_bandy_w_roku "Numer_incydentu_w_bandzie_w_roku"
+FROM DaneIncydentow
+ORDER BY
+    pseudo,
+    data_incydentu;
+
+
+/*
+Przygotuj zestawienie liczby incydentow oraz sredniego poziomu agresji dla 
+roznych gatunkow wrogow (cchemy wszystkie gatunki), jakie mialy w latach 2009, 
+2010, 2011. Kategorie poziomu agresji wyznacz zgodnie z procedura: Niska [1-4],
+ Srednia [5-8], Wysoka [9-10]. Kategorie poziomu agresji przedstaw w kolumnach. 
+ Zamiast brakujacych wartosci zastosuj 0.
+Struktura wyniku: 
+Gatunek, Rok, Niski_liczba, Sredni_liczba, Wysoki_liczba, Niski_srednia, Sredni_srednia, Wysoki_srednia.
+*/
+WITH DaneAgresji AS (
+    SELECT
+        w.gatunek,
+        EXTRACT(YEAR FROM hi.data_incydentu) AS rok,
+        CASE
+            WHEN hi.poziom_agresji BETWEEN 1 AND 4 
+                THEN 'Niska'
+            WHEN hi.poziom_agresji BETWEEN 5 AND 8 
+                THEN 'Srednia'
+            WHEN hi.poziom_agresji BETWEEN 9 AND 10 
+                THEN 'Wysoka'
+        END AS kategoria,
+        hi.poziom_agresji
+    FROM Historia_Incydentow hi
+        INNER JOIN Wrogowie w ON w.imie_wroga = hi.imie_wroga
+    WHERE 
+        EXTRACT(YEAR FROM hi.data_incydentu) IN (2009, 2010, 2011)
+),
+PivotSrc AS (
+    SELECT
+        gatunek,
+        rok,
+        kategoria,
+        COUNT(*) AS liczba,
+        AVG(poziom_agresji) AS srednia
+    FROM DaneAgresji
+    GROUP BY
+        gatunek, 
+        rok, 
+        kategoria
+)
+SELECT
+    gatunek,
+    rok,
+    NVL(niski_liczba, 0) "Niski_liczba",
+    NVL(sredni_liczba, 0) "Sredni_liczba",
+    NVL(wysoki_liczba, 0) "Wysoki_liczba",
+    ROUND(NVL(niski_srednia, 0), 2) "Niski_srednia",
+    ROUND(NVL(sredni_srednia, 0), 2) "Sredni_srednia",
+    ROUND(NVL(wysoki_srednia, 0), 2) "Wysoki_srednia"
+FROM PivotSrc
+PIVOT (
+    SUM(liczba) AS liczba,
+    SUM(srednia) AS srednia
+    FOR kategoria IN ('Niska' AS niski, 'Srednia' AS sredni, 'Wysoka' AS wysoki)
+)
+ORDER BY 
+    gatunek, 
+    rok;
+
+
+/*
+Dla każdego kota wyznacz Ścieżkę Władzy (ciąg pseudonimów od szefa głównego do 
+danego kota). Dodatkowo oblicz Całkowity Budżet Rodzinny danego kota — czyli 
+sumę przydziału myszy (wraz z ekstra) jego samego oraz wszystkich jego 
+podwładnych na wszystkich poziomach hierarchii. Wyniki posortuj malejąco po budżecie.”
+*/
+WITH Hierarchia AS (
+    SELECT
+        k.pseudo,
+        k.imie,
+        k.funkcja,
+        k.szef,
+        k.przydzial_myszy + NVL(k.myszy_extra, 0) AS budzet,
+        SYS_CONNECT_BY_PATH(k.pseudo, ' -> ') AS sciezka
+    FROM Kocury k
+    START WITH k.szef IS NULL
+    CONNECT BY PRIOR k.pseudo = k.szef
+),
+Rodzina AS (
+    SELECT
+        h1.pseudo AS root_pseudo,
+        SUM(h2.budzet) AS budzet_rodzinny
+    FROM Hierarchia h1
+        JOIN Hierarchia h2 ON h2.sciezka LIKE h1.sciezka || '%'
+    GROUP BY
+        h1.pseudo
+)
+SELECT
+    h.imie "IMIE",
+    h.funkcja "FUNKCJA",
+    SUBSTR(h.sciezka, 5) "SCIEZKA",
+    ro.budzet_rodzinny "BUDZET_RODZINNY"
+FROM Hierarchia h
+    INNER JOIN Rodzina ro ON ro.root_pseudo = h.pseudo
+ORDER BY
+    ro.budzet_rodzinny DESC;
