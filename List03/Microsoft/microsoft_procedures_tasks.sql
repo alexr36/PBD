@@ -2,7 +2,8 @@
  * *****************************************************************************
  * @file           : microsoft_procedures_tasks.sql
  * @author         : Alex Rogoziński
- * @brief          : 
+ * @brief          : This file contains solutions to tasks related to 
+                     Microsoft T-SQL procedures.
  * *****************************************************************************
  */
 
