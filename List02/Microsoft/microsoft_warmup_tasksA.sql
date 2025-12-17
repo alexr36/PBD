@@ -65,6 +65,7 @@ ORDER BY
 --------------------------------------------------------------------------------
 -- TASK 5
 --------------------------------------------------------------------------------
+-- NOTE: Mozna bylo wykorzystac podzapytanie
 SELECT DISTINCT
     k1.pseudo                                   [PSEUDO],
     k1.przydzial_myszy                          [PRZYDZIAL_MYSZY],

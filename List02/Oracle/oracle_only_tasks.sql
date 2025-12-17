@@ -353,7 +353,7 @@ Dol AS (
     SELECT *
     FROM Lata, Srednia
     WHERE 
-        liczba <= sr
+        liczba < sr
     ORDER BY 
         (sr - liczba)
     FETCH FIRST 1 ROWS WITH TIES
