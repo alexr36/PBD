@@ -13,7 +13,7 @@ SET SERVEROUTPUT ON;
 --------------------------------------------------------------------------------
 -- TASK 1
 --------------------------------------------------------------------------------
-UNDEFINE funkcja_input
+UNDEFINE funkcja_input;
 
 DECLARE
     v_funkcja_kocura Kocury.funkcja%TYPE;
@@ -39,7 +39,7 @@ END;
 --------------------------------------------------------------------------------
 -- TASK 3
 --------------------------------------------------------------------------------
-UNDEFINE pseudo_input
+UNDEFINE pseudo_input;
 
 DECLARE
     v_przydzial_myszy Kocury.przydzial_myszy%TYPE;
@@ -134,8 +134,82 @@ END;
 --------------------------------------------------------------------------------
 -- TASK 5
 --------------------------------------------------------------------------------
+DECLARE
+    CURSOR c_kursor IS 
+        SELECT
+            k.imie,
+            k.pseudo,
+            k.przydzial_myszy,
+            f.max_myszy
+        FROM Kocury k
+            INNER JOIN Funkcje f ON f.funkcja = k.funkcja
+        ORDER BY
+            przydzial_myszy DESC;
+    r_kot_dane        c_kursor%ROWTYPE;
+    v_zmiany          NUMBER := 0;
+    v_suma_przydz     NUMBER := 0;
+    v_nowy_przydzial  NUMBER;
+BEGIN
+    LOOP
+        -- Policz aktualna sume przydzialow przez zalawdowanie do zmiennej 
+        -- wynikowej wartosci zwracanej przez prosta kwerende.
+        SELECT 
+            SUM(przydzial_myszy)
+        INTO 
+            v_suma_przydz
+        FROM Kocury;
+        EXIT WHEN v_suma_przydz > 1050;
 
-ROLLBACK;
+        OPEN c_kursor;
+
+        -- Zaktualizuj przydzialy jesli ich suma nie przekracza 1050; najpierw 
+        -- oblicz 110% poprzedniego a nastepnie sprawdz czy nie przekracza 
+        -- `max_myszy` dla funkcji kocura i odpowiednio zmien lub zostaw 
+        -- obliczona przed chwila wartosc.
+        -- Zaktualizuj licznik zmian weryfikujac czy zmiana faktycznie nastapila.
+        LOOP
+            FETCH c_kursor INTO r_kot_dane;
+            EXIT WHEN c_kursor%NOTFOUND;
+
+            v_nowy_przydzial := 1.1 * r_kot_dane.przydzial_myszy;
+            IF v_nowy_przydzial > r_kot_dane.max_myszy THEN
+                v_nowy_przydzial := r_kot_dane.max_myszy;
+            END IF;
+
+            IF v_nowy_przydzial != r_kot_dane.przydzial_myszy THEN
+                v_zmiany := v_zmiany + 1;
+            END IF;
+
+            UPDATE Kocury SET przydzial_myszy = v_nowy_przydzial WHERE pseudo = r_kot_dane.pseudo;
+        END LOOP;
+
+        CLOSE c_kursor;
+    END LOOP;
+
+    -- Wypisz sformatowane dane
+    DBMS_OUTPUT.PUT_LINE('Calk. przydzial w stadku ' || v_suma_przydz || '  Zmian - ' || v_zmiany);
+    DBMS_OUTPUT.NEW_LINE();
+    DBMS_OUTPUT.PUT_LINE(RPAD('IMIE', 16) || 'Myszki po podwyzce');
+    DBMS_OUTPUT.PUT_LINE(RPAD('-', 15, '-') || ' ' || RPAD('-', 18, '-'));
+
+    FOR kot IN (
+        SELECT
+            imie,
+            przydzial_myszy
+        FROM Kocury
+        ORDER BY
+            w_stadku_od
+    ) LOOP
+        DBMS_OUTPUT.PUT_LINE(RPAD(kot.imie, 16) || LPAD(kot.przydzial_myszy, 18));
+    END LOOP;
+
+    ROLLBACK;
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE(SQLERRM);
+        ROLLBACK;
+END;
+/
 
 --------------------------------------------------------------------------------
 -- TASK 6
@@ -175,4 +249,61 @@ END;
 --------------------------------------------------------------------------------
 -- TASK 8
 --------------------------------------------------------------------------------
+UNDEFINE nr_bandy_input; 
+UNDEFINE nazwa_input;
+UNDEFINE teren_input;
 
+DECLARE
+    v_nr_bandy Bandy.nr_bandy%TYPE := &nr_bandy_input;
+    v_nazwa    Bandy.nazwa%TYPE    := UPPER('&nazwa_input');
+    v_teren    Bandy.teren%TYPE    := UPPER('&teren_input');
+    v_errmsg   VARCHAR(55)         := '';
+    v_errcnt   NUMBER              := 0;
+
+    e_invalid_nr_bandy EXCEPTION;
+    e_invalid_input    EXCEPTION;
+BEGIN
+    IF v_nr_bandy <= 0 THEN
+        RAISE e_invalid_nr_bandy;
+    END IF;
+
+    FOR banda IN (SELECT * FROM Bandy) LOOP
+        IF v_nr_bandy = banda.nr_bandy THEN
+            v_errmsg := v_errmsg || TO_CHAR(v_nr_bandy);
+            v_errcnt := v_errcnt + 1;
+        END IF;
+
+        IF v_nazwa = banda.nazwa THEN
+            IF v_errcnt > 0 THEN
+                v_errmsg := v_errmsg || ', ';
+            END IF;
+            v_errmsg := v_errmsg || v_nazwa;
+            v_errcnt := v_errcnt + 1;
+        END IF;
+
+        IF v_teren = banda.teren THEN
+            IF v_errcnt > 0 THEN
+                v_errmsg := v_errmsg || ', ';
+            END IF;
+            v_errmsg := v_errmsg || v_teren;
+            v_errcnt := v_errcnt + 1;
+        END IF;
+
+        IF v_errmsg IS NOT NULL THEN
+            RAISE e_invalid_input;
+        END IF;
+    END LOOP;
+
+    INSERT INTO Bandy VALUES (v_nr_bandy, v_nazwa, v_teren, NULL);
+    DBMS_OUTPUT.PUT_LINE('Dodano bande: [' || v_nr_bandy || ', ' || v_nazwa || ', ' || v_teren || ']');
+    ROLLBACK;
+EXCEPTION
+    WHEN e_invalid_nr_bandy THEN
+        DBMS_OUTPUT.PUT_LINE('Numer bandy musi byc wiekszy od 0: ' || v_nr_bandy);
+    WHEN e_invalid_input THEN
+        DBMS_OUTPUT.PUT_LINE(v_errmsg || ': juz istnieje');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE(SQLERRM);
+        ROLLBACK;
+END;
+/
