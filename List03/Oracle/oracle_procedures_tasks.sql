@@ -32,7 +32,7 @@ BEGIN
     SET przydzial_myszy = p_przydzial_myszy
     WHERE
         funkcja = UPPER(p_funkcja);
-RAISE_APPLICATION_ERROR(-20099, 'TEST');
+
     -- Sprawdzenie czy kocury o podanej funkcji istnialy
     IF SQL%ROWCOUNT = 0 THEN
         RAISE_APPLICATION_ERROR(-20002, 'Brak kotow o funkcji: ' || p_funkcja);
@@ -67,8 +67,8 @@ BEGIN
 
     ZmienPrzydzialDlaFunkcji(v_funkcja, v_przydzial_myszy);
     DBMS_OUTPUT.NEW_LINE();
-    DBMS_OUTPUT.PUT_LINE('Po aktualizacji dla ' || UPPER(v_funkcja) || ':');
 
+    DBMS_OUTPUT.PUT_LINE('Po aktualizacji dla ' || UPPER(v_funkcja) || ':');
     FOR kot IN c_kursor LOOP
         DBMS_OUTPUT.PUT_LINE(RPAD(kot.pseudo, 15) || ' ' || LPAD(kot.przydzial_myszy, 3) || ' ' || RPAD(kot.funkcja, 10));
     END LOOP;
@@ -91,9 +91,8 @@ UPDATE Kocury SET przydzial_myszy = 61 WHERE pseudo = 'KURKA';
 UNDEFINE pseudo_input;
 
 -- Definicja
-CREATE OR REPLACE FUNCTION PodatekPoglowny (
-    p_pseudo IN Kocury.pseudo%TYPE
-) RETURN NUMBER IS
+CREATE OR REPLACE FUNCTION PodatekPoglowny (p_pseudo IN Kocury.pseudo%TYPE) RETURN NUMBER 
+IS
     TYPE r_dane IS RECORD (podwladni_cnt NUMBER, wrogowie_cnt NUMBER, plec Kocury.plec%TYPE, pseudo Kocury.pseudo%TYPE);
     v_dane    r_dane;
     v_podatek NUMBER := 0;
@@ -103,7 +102,7 @@ BEGIN
     -- Podatek podstawowy - obliczenie 5% calkowitego przydzialu myszy
     -- dla kota o danym pseudonimie
     SELECT 
-        ROUND(0.05 * (przydzial_myszy+ NVL(myszy_extra, 2)), 0),
+        ROUND(0.05 * (przydzial_myszy+ NVL(myszy_extra, 0)), 0),
         plec
     INTO
         v_podatek,
