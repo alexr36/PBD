@@ -244,7 +244,17 @@ END;
 -- TASK 7
 --------------------------------------------------------------------------------
 -- b)
+UNDEFINE przelozeni_num_input;
 
+DECLARE
+    v_przelozeni_num NUMBER := &przelozeni_num_input;
+    v_dynamic_sql    CLOB;
+BEGIN
+    
+
+    EXECUTE IMMEDIATE v_dynamic_sql;
+END;
+/
 
 --------------------------------------------------------------------------------
 -- TASK 8
