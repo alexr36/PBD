@@ -252,7 +252,7 @@ DECLARE
     v_pivot_for      CLOB   := '';
     v_cursor         NUMBER;
     v_column_cnt     NUMBER;
-    v_desc_tab       DBMS_SQL.desc_tab;
+    v_desc_tab       DBMS_SQL.DESC_TAB;
     v_column_val     VARCHAR(4000);
     v_status         NUMBER;
 BEGIN
