@@ -295,6 +295,7 @@ COMPOUND TRIGGER
 END trg_wirus;
 /
 
+-- Wywołanie
 SELECT
     pseudo,
     funkcja,
@@ -333,8 +334,67 @@ DROP TRIGGER trg_wirus;
 --------------------------------------------------------------------------------
 -- TASK 6
 --------------------------------------------------------------------------------
+-- Definicja relacji
+CREATE TABLE Dodatki_extra (
+    pseudo        VARCHAR2(15),
+    dodatek_extra NUMBER(3)
+);
+
+-- Definicja wyzwalacza
+CREATE OR REPLACE TRIGGER trg_dokumentuj_podwyzki_milus
+FOR UPDATE OF przydzial_myszy ON Kocury
+COMPOUND TRIGGER
+    v_czy_update_milusia BOOLEAN := FALSE;
+    v_czy_podwyzka       BOOLEAN := FALSE;
+    v_dynamic_sql        CLOB;
+
+    BEFORE EACH ROW IS
+    BEGIN
+        v_czy_update_milusia := :OLD.funkcja = 'MILUSIA';
+        v_czy_podwyzka       := :OLD.przydzial_myszy < :NEW.przydzial_myszy;
+    END BEFORE EACH ROW;
+
+    AFTER STATEMENT IS
+    BEGIN
+        IF v_czy_update_milusia AND SYS.LOGIN_USER != 'TYGRYS' AND v_czy_podwyzka THEN
+            v_dynamic_sql := v_dynamic_sql || 
+                '
+                INSERT INTO Dodatki_extra (pseudo, dodatek_extra)
+                SELECT
+                    pseudo,
+                    -10
+                FROM Kocury
+                WHERE
+                    funkcja = ''MILUSIA''
+                ';
+
+            EXECUTE IMMEDIATE v_dynamic_sql;
+        END IF;
+    END AFTER STATEMENT;
 
 
+END trg_dokumentuj_podwyzki_milus;
+/
+
+-- Wywołanie
+SELECT
+    *
+FROM Dodatki_extra;
+
+UPDATE Kocury
+SET przydzial_myszy = przydzial_myszy + 2
+WHERE
+    pseudo = 'LOLA';
+
+SELECT
+    *
+FROM Dodatki_extra;
+
+ROLLBACK;
+
+DROP TABLE Dodatki_extra;
+
+DROP TRIGGER trg_dokumentuj_podwyzki_milus;
 
 --------------------------------------------------------------------------------
 -- TASK 7
