@@ -11,7 +11,7 @@
 -- TASK 3
 --------------------------------------------------------------------------------
 -- Definicja
-CREATE OR REPLACE TRIGGER trig_autonum_bandy
+CREATE OR REPLACE TRIGGER trg_autonum_bandy
 BEFORE INSERT ON Bandy
 FOR EACH ROW
 BEGIN
@@ -20,7 +20,7 @@ BEGIN
     INTO
         :NEW.nr_bandy
     FROM Bandy;
-END;
+END trg_autonum_bandy;
 /
 
 -- Wywołanie
@@ -29,6 +29,8 @@ INSERT INTO Bandy VALUES (0, 'Nowa banda', 'Wybrzeze', 'MALA');
 SELECT * FROM Bandy;
 
 ROLLBACK;
+
+DROP TRIGGER trg_autonum_bandy;
 
 --------------------------------------------------------------------------------
 -- TASK 4
@@ -42,7 +44,7 @@ CREATE TABLE Przekroczenia_przydzialow (
 );
 
 -- Definicja wyzwalacza
-CREATE OR REPLACE TRIGGER trig_guard_przydzialy
+CREATE OR REPLACE TRIGGER trg_guard_przydzialy
 BEFORE INSERT OR UPDATE ON Kocury
 FOR EACH ROW
 DECLARE
@@ -68,7 +70,7 @@ BEGIN
         INSERT INTO Przekroczenia_przydzialow VALUES (SYS.LOGIN_USER, SYSDATE, :NEW.pseudo, v_operacja);
         :NEW.przydzial_myszy := :OLD.przydzial_myszy;
     END IF;
-END;
+END trg_guard_przydzialy;
 / 
 
 -- Wywołanie
@@ -95,14 +97,238 @@ DROP TABLE Przekroczenia_przydzialow;
 
 ROLLBACK;
 
+DROP TRIGGER trg_guard_przydzialy;
+
 --------------------------------------------------------------------------------
 -- TASK 5
 --------------------------------------------------------------------------------
 -- a)
+-- Definicja pakietu
+CREATE OR REPLACE PACKAGE pkg_wirus
+AS
+    g_mutex             BOOLEAN   := FALSE;
+    g_delta_przydzialow NUMBER(3);
+END pkg_wirus;
+/
 
+-- Definicja wyzwalaczy
+CREATE OR REPLACE TRIGGER trg_przed
+BEFORE UPDATE OF przydzial_myszy ON Kocury
+FOR EACH ROW
+WHEN (OLD.funkcja = 'MILUSIA')
+BEGIN
+    -- Zapamietaj delte przydzialow
+    IF pkg_wirus.g_delta_przydzialow IS NULL THEN
+        pkg_wirus.g_delta_przydzialow := :NEW.przydzial_myszy - :OLD.przydzial_myszy;
+    END IF;
+
+    -- Jesli obnizka, rzuc wyjatek
+    IF pkg_wirus.g_delta_przydzialow < 0 THEN
+        pkg_wirus.g_delta_przydzialow := NULL;
+        RAISE_APPLICATION_ERROR(-20001, 'Nie mozna zmniejszyc przydzialu myszy.');
+    END IF;
+END trg_przed;
+/
+
+CREATE OR REPLACE TRIGGER trg_po
+AFTER UPDATE OF przydzial_myszy ON Kocury
+DECLARE
+    v_przydzial_tygrys  Kocury.przydzial_myszy%TYPE;
+    v_10_procent_tygrys NUMBER(3);
+BEGIN
+    IF pkg_wirus.g_delta_przydzialow IS NULL OR pkg_wirus.g_delta_przydzialow = 0 OR pkg_wirus.g_mutex THEN
+        RETURN;
+    END IF;
+
+    -- Blokada na update
+    pkg_wirus.g_mutex := TRUE;
+
+    -- Wez aktualny przydzial tygrysa i jego 10%
+    SELECT
+        przydzial_myszy,
+        ROUND(0.1 * przydzial_myszy)
+    INTO
+        v_przydzial_tygrys,
+        v_10_procent_tygrys
+    FROM Kocury
+    WHERE
+        pseudo = 'TYGRYS';
+
+    IF pkg_wirus.g_delta_przydzialow < v_10_procent_tygrys THEN
+        -- Zwieksz przydzialy dla milus
+        UPDATE Kocury
+        SET 
+            przydzial_myszy = przydzial_myszy + v_10_procent_tygrys - pkg_wirus.g_delta_przydzialow,
+            myszy_extra     = NVL(myszy_extra, 0) + 5
+        WHERE
+            funkcja = 'MILUSIA';
+
+        -- Zabierz Tygrysowi
+        UPDATE Kocury
+        SET przydzial_myszy = przydzial_myszy - v_10_procent_tygrys
+        WHERE
+            pseudo = 'TYGRYS';
+    ELSE
+        -- Dodaj extra Tygrysowi
+        UPDATE Kocury
+        SET myszy_extra = NVL(myszy_extra, 0) + 5
+        WHERE
+            pseudo = 'TYGRYS';
+    END IF;
+
+    pkg_wirus.g_delta_przydzialow := NULL;
+    pkg_wirus.g_mutex             := FALSE; 
+EXCEPTION
+    WHEN OTHERS THEN
+        pkg_wirus.g_delta_przydzialow := NULL;
+        pkg_wirus.g_mutex             := FALSE;
+        RAISE;  
+END trg_po;
+/
+
+-- Wywołanie
+SELECT
+    pseudo,
+    funkcja,
+    przydzial_myszy,
+    NVL(myszy_extra, 0) "EXTRA"
+FROM Kocury
+WHERE
+    funkcja = 'MILUSIA'
+    OR
+    pseudo = 'TYGRYS'
+ORDER BY 
+    funkcja;
+
+UPDATE Kocury
+SET przydzial_myszy = przydzial_myszy + 4
+WHERE
+    funkcja = 'MILUSIA';
+
+SELECT
+    pseudo,
+    funkcja,
+    przydzial_myszy,
+    NVL(myszy_extra, 0) "EXTRA"
+FROM Kocury
+WHERE
+    funkcja = 'MILUSIA'
+    OR
+    pseudo = 'TYGRYS'
+ORDER BY 
+    funkcja;
+
+ROLLBACK;
+
+DROP PACKAGE pkg_wirus;
+DROP TRIGGER trg_przed;
+DROP TRIGGER trg_po;
+
+-- Explicit rollback
+UPDATE Kocury SET myszy_extra = 47, przydzial_myszy = 25  WHERE pseudo = 'LOLA';
+UPDATE Kocury SET myszy_extra = 35, przydzial_myszy = 20  WHERE pseudo = 'PUSZYSTA';
+UPDATE Kocury SET myszy_extra = 42, przydzial_myszy = 22  WHERE pseudo = 'MALA';
+UPDATE Kocury SET myszy_extra = 28, przydzial_myszy = 24  WHERE pseudo = 'LASKA';
+UPDATE Kocury SET myszy_extra = 33, przydzial_myszy = 103 WHERE pseudo = 'TYGRYS';
 
 -- b)
+--Definicja wyzwalacza
+CREATE OR REPLACE TRIGGER trg_wirus
+FOR UPDATE OF przydzial_myszy ON Kocury
+COMPOUND TRIGGER
+    v_delta_przydzialow Kocury.przydzial_myszy%TYPE;
+    v_przydzial_tygrys  Kocury.przydzial_myszy%TYPE;
+    v_10_procent_tygrys Kocury.przydzial_myszy%TYPE;
+    v_za_malo           BOOLEAN := FALSE;
 
+    BEFORE STATEMENT IS
+    BEGIN
+        -- Oblicz przdzial Tygrysa i jego 10%
+        SELECT
+            przydzial_myszy,
+            ROUND(0.1 * przydzial_myszy)
+        INTO
+            v_przydzial_tygrys,
+            v_10_procent_tygrys
+        FROM Kocury
+        WHERE
+            pseudo = 'TYGRYS';
+    END BEFORE STATEMENT;
+
+    BEFORE EACH ROW IS
+    BEGIN
+        -- Zapamietaj delte przydzialow dla milus
+        IF :OLD.funkcja = 'MILUSIA' AND v_delta_przydzialow IS NULL THEN
+            v_delta_przydzialow := :NEW.przydzial_myszy - :OLD.przydzial_myszy;
+
+            IF v_delta_przydzialow < 0 THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Nie mozna zmniejszyc przydzialu myszy.');
+            END IF;
+
+            IF v_delta_przydzialow < v_10_procent_tygrys THEN
+                -- Zaktualizuj bonusowe przydzialy dla milus
+                v_za_malo            := TRUE;
+                :NEW.przydzial_myszy := :OLD.przydzial_myszy + v_10_procent_tygrys;
+                :NEW.myszy_extra     := NVL(:NEW.myszy_extra, 0) + 5;
+            END IF;
+        END IF;
+    END BEFORE EACH ROW;
+
+    AFTER STATEMENT IS
+    BEGIN
+        IF v_delta_przydzialow != 0 THEN
+            IF v_za_malo THEN            
+                -- Zabierz Tygrysowi
+                UPDATE Kocury
+                SET przydzial_myszy = przydzial_myszy - v_10_procent_tygrys
+                WHERE
+                    pseudo = 'TYGRYS';
+            ELSE
+                -- Dodaj extra Tygrysowi
+                UPDATE Kocury
+                SET myszy_extra = NVL(myszy_extra, 0) + 5
+                WHERE
+                    pseudo = 'TYGRYS';
+            END IF;
+        END IF;
+    END AFTER STATEMENT;
+END trg_wirus;
+/
+
+SELECT
+    pseudo,
+    funkcja,
+    przydzial_myszy,
+    NVL(myszy_extra, 0) "EXTRA"
+FROM Kocury
+WHERE
+    funkcja = 'MILUSIA'
+    OR
+    pseudo = 'TYGRYS'
+ORDER BY 
+    funkcja;
+
+UPDATE Kocury
+SET przydzial_myszy = przydzial_myszy + 4
+WHERE
+    funkcja = 'MILUSIA';
+
+SELECT
+    pseudo,
+    funkcja,
+    przydzial_myszy,
+    NVL(myszy_extra, 0) "EXTRA"
+FROM Kocury
+WHERE
+    funkcja = 'MILUSIA'
+    OR
+    pseudo = 'TYGRYS'
+ORDER BY 
+    funkcja;
+
+ROLLBACK;
+
+DROP TRIGGER trg_wirus;
 
 --------------------------------------------------------------------------------
 -- TASK 6
