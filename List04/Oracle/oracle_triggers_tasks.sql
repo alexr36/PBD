@@ -400,8 +400,52 @@ DROP TRIGGER trg_dokumentuj_podwyzki_milus;
 -- TASK 7
 --------------------------------------------------------------------------------
 -- a)
+BEGIN
+    DECLARE
+        v_table_count NUMBER;
+    BEGIN
+        SELECT 
+            COUNT(*) 
+        INTO 
+            v_table_count 
+        FROM USER_TABLES 
+        WHERE 
+            TABLE_NAME = 'MYSZY';
+            
+        IF v_table_count != 0 THEN
+            EXECUTE IMMEDIATE 'DROP TABLE Myszy';
+            DBMS_OUTPUT.PUT_LINE('Usunieto tabele `Myszy`.');
+        END IF;
+    EXCEPTION
+        WHEN OTHERS THEN
+            NULL;
+    END;
+
+    EXECUTE IMMEDIATE 
+    '
+        CREATE TABLE Myszy (
+        nr_myszy       NUMBER       CONSTRAINT pk_myszy PRIMARY KEY,
+        lowca          VARCHAR2(15) CONSTRAINT fk_lowca REFERENCES Kocury(pseudo),
+        zjadacz        VARCHAR2(15) CONSTRAINT fk_zjadacz REFERENCES Kocury(pseudo),
+        waga_myszy     NUMBER,
+        data_zlowienia DATE,
+        data_wydania   DATE
+    )
+    ';
+
+    DBMS_OUTPUT.PUT_LINE('Utworzono tabele `Myszy`.');
+END;
+/
 
 
--- b)
+-- CREATE TABLE Myszy (
+--     nr_myszy       NUMBER       CONSTRAINT pk_myszy PRIMARY KEY,
+--     lowca          VARCHAR2(15) CONSTRAINT fk_lowca REFERENCES Kocury(pseudo),
+--     zjadacz        VARCHAR2(15) CONSTRAINT fk_zjadacz REFERENCES Kocury(pseudo),
+--     waga_myszy     NUMBER,
+--     data_zlowienia DATE,
+--     data_wydania   DATE
+-- );
 
-
+-- -- b)
+-- DROP TABLE Myszy;
