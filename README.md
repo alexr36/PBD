@@ -10,9 +10,11 @@ PBD/
 │
 ├── Lists/
 ├── List0x/
+├── Reports/
 ```
 In `List0x/` directories there are solutions for the tasks.
 In `Lists/` directory there are instructions for the tasks presented during laboratory classes.
+In `Reports` directory there are lab reports with summarized descriptions of task solutions from lists.
 
 ## Disclaimer
 This repository contains solution code written by me.
