@@ -116,6 +116,10 @@ BEGIN
     HAVING
         SYSDATE - MAX(k.w_stadku_od) = ms.staz;
 
+    IF t_kocury.COUNT = 0 THEN
+        RAISE e_brak_rekordow;
+    END IF;
+
     -- Wypisz na ekran
     FOR i IN t_kocury.FIRST..t_kocury.LAST LOOP
         DBMS_OUTPUT.PUT_LINE(RPAD('Pseudo:',   10) || t_kocury(i).pseudo);
