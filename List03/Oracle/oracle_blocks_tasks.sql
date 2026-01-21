@@ -155,7 +155,7 @@ DECLARE
     v_nowy_przydzial  NUMBER;
 BEGIN
     LOOP
-        -- Policz aktualna sume przydzialow przez zalawdowanie do zmiennej 
+        -- Policz aktualna sume przydzialow przez zaladowanie do zmiennej 
         -- wynikowej wartosci zwracanej przez prosta kwerende.
         SELECT 
             SUM(przydzial_myszy)
