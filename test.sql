@@ -110,3 +110,62 @@ END;
 /*
 
 */
+
+DECLARE
+    -- rekord trzymający dane wyniku
+    TYPE t_incydent IS RECORD (
+        pseudo            Kocury.pseudo%TYPE,
+        data_incydentu    Historia_incydentow.data_incydentu%TYPE,
+        poziom_agresji    Historia_incydentow.poziom_agresji%TYPE
+    );
+
+    -- tabela indeksowana rekordów
+    TYPE t_tab_incydent IS TABLE OF t_incydent INDEX BY BINARY_INTEGER;
+    v_wyniki t_tab_incydent;
+
+    v_idx NUMBER := 0;
+BEGIN
+    FOR b IN (
+        SELECT nr_bandy, nazwa
+        FROM Bandy
+    ) LOOP
+        
+        BEGIN
+            SELECT 
+                hi.pseudo,
+                hi.data_incydentu,
+                hi.poziom_agresji
+            INTO 
+                v_wyniki(v_idx).pseudo,
+                v_wyniki(v_idx).data_incydentu,
+                v_wyniki(v_idx).poziom_agresji
+            FROM Historia_incydentow hi
+            WHERE hi.pseudo IN (
+                SELECT pseudo
+                FROM Kocury
+                WHERE nr_bandy = b.nr_bandy
+            )
+            ORDER BY hi.poziom_agresji DESC, hi.data_incydentu DESC
+            FETCH FIRST 1 ROWS ONLY;
+
+            v_idx := v_idx + 1;
+
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                NULL;
+        END;
+
+    END LOOP;
+
+    DBMS_OUTPUT.PUT_LINE('Najbardziej agresywne incydenty w bandach:');
+    DBMS_OUTPUT.PUT_LINE('--------------------------------------------');
+
+    FOR idx IN v_wyniki.FIRST .. v_wyniki.LAST LOOP
+        DBMS_OUTPUT.PUT_LINE(
+            'Pseudo: ' || v_wyniki(idx).pseudo ||
+            ' | Data: ' || TO_CHAR(v_wyniki(idx).data_incydentu, 'YYYY-MM-DD') ||
+            ' | Poziom agresji: ' || v_wyniki(idx).poziom_agresji
+        );
+    END LOOP;
+END;
+/
