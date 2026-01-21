@@ -81,7 +81,7 @@ BEGIN
                     SELECT 
                         k.pseudo
                     FROM Kocury k
-                    JOIN Bandy b ON b.nr_bandy = k.nr_bandy
+                        JOIN Bandy b ON b.nr_bandy = k.nr_bandy
                     WHERE 
                         b.nazwa = p_nazwa_bandy
                 )
